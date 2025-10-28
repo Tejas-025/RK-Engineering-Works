@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RK Engineering Works - Invoice Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            font-size: 10pt; /* Base font size for web page */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #002060;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Adjusted minmax */
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #002060;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        input, textarea, select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .section-title {
+            color: #002060;
+            font-size: 1.5em;
+            margin: 25px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .items-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 60px;
+            gap: 10px;
+            font-weight: 600;
+            color: #002060;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 60px;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(56, 239, 125, 0.4);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-add {
+            background: #3498db;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-add:hover {
+            background: #2980b9;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        /* --- Invoice Preview Styles (Rebuilt) --- */
+        #invoice-preview {
+            display: none;
+            background: white;
+            max-width: 210mm; /* A4 width */
+            min-height: 297mm; /* A4 height */
+            margin: 30px auto;
+            padding: 15mm; /* Padding for on-screen view */
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+            font-size: 9pt; /* Base font size for invoice */
+            color: #000;
+            line-height: 1.4;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.08;
+            width: 60%;
+            max-width: 400px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .invoice-content {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* New Header Structure */
+        .invoice-header .header-top {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .invoice-header .header-top h2 {
+            font-size: 26pt;
+            color: #003366; /* Dark Blue */
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+        .invoice-header .header-top .tagline {
+            font-size: 10pt;
+            font-weight: 700;
+            color: #000;
+            margin: 0;
+        }
+        .invoice-header .header-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #000;
+            line-height: 1.5;
+        }
+        .invoice-header .contact-details {
+            font-size: 9pt;
+            font-weight: 500;
+        }
+        .invoice-header .logo-placeholder {
+            width: 120px;
+            height: 120px;
+        }
+        .invoice-header .logo-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Meta Bar */
+        .invoice-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            border: 2px solid #000;
+            margin: 15px 0 0 0;
+            font-weight: 700;
+        }
+        .invoice-meta .meta-box {
+            padding: 8px 10px;
+            font-size: 9pt;
+            border-right: 1px solid #000;
+        }
+        .invoice-meta .meta-box:last-child { border-right: none; }
+        .invoice-meta .gstn { text-align: left; }
+        .invoice-meta .title { text-align: center; font-size: 14pt; }
+        .invoice-meta .recipient { text-align: right; }
+
+        /* New Details Grid */
+        .details-container {
+            border: 1px solid #000;
+            border-top: none;
+            display: grid;
+            grid-template-columns: 1.2fr 1.8fr; /* 40% / 60% split approx */
+        }
+        .detail-section-left {
+            padding: 10px;
+            border-right: 1px solid #000;
+        }
+        .detail-section-right {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr; /* 4 columns for right side */
+            border-bottom: 1px solid #000; /* Border for the whole right box */
+        }
+        .detail-section-left h3 {
+            background: #f0f0f0;
+            padding: 5px;
+            text-align: center;
+            font-size: 10pt;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+        }
+        .detail-row {
+            display: grid;
+            grid-template-columns: 60px 1fr; /* Label + Content */
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+        .detail-row-right {
+            display: grid;
+            grid-template-columns: auto 1fr; /* Label + Content */
+            gap: 5px;
+            padding: 5px 8px;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+        }
+        /* Remove borders to match sample */
+        .detail-row-right:nth-child(4n), .detail-row-right:nth-child(4n-1) {
+             border-right: 1px solid #000;
+        }
+         .detail-row-right:nth-child(1), .detail-row-right:nth-child(2),
+         .detail-row-right:nth-child(3), .detail-row-right:nth-child(4) {
+            border-top: 1px solid #000;
+         }
+        
+         .detail-row-right:nth-child(4n) {
+            border-right: none;
+         }
+         .detail-row-right:nth-child(9), .detail-row-right:nth-child(10),
+         .detail-row-right:nth-child(11), .detail-row-right:nth-child(12) {
+            border-bottom: none;
+         }
+
+
+        .detail-row-right.span-2 {
+            grid-column: span 2;
+        }
+        .detail-row-right strong {
+            font-size: 8.5pt;
+        }
+        .detail-row strong {
+            font-weight: 700;
+        }
+
+        /* Items Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+            font-size: 9pt;
+        }
+        table th, table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+            vertical-align: top;
+            height: 30px; /* Give cells some height */
+        }
+        table th {
+            background: #f0f0f0;
+            font-weight: 700;
+        }
+        #prev-items-tbody td:first-child {
+            text-align: left; /* Align description left */
+            line-height: 1.5;
+            vertical-align: top;
+        }
+        #prev-items-tbody {
+            min-height: 200px; /* Ensure table has some height */
+        }
+        #prev-items-tbody tr {
+             height: auto;
+        }
+         #prev-items-tbody tr:last-child {
+            height: 100%; /* Try to make last row fill */
+        }
+        .table-wrapper {
+            flex-grow: 1; /* Make table wrapper grow */
+            display: flex;
+            flex-direction: column;
+        }
+         .table-wrapper table {
+            border-bottom: none; /* Remove double border */
+         }
+
+
+        /* New Footer Structure */
+        .footer-total-exclusive {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            padding: 8px;
+            border: 1px solid #000;
+            border-top: none;
+        }
+        .footer-main {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            border: 1px solid #000;
+            border-top: none;
+        }
+        .footer-left {
+            padding: 10px;
+            border-right: 1px solid #000;
+        }
+        .footer-right {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .footer-row {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            margin-bottom: 5px;
+        }
+        .bank-details { margin-top: 15px; }
+        .bank-details h4 { margin-bottom: 5px; font-size: 10pt; }
+        .bank-row {
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            margin-bottom: 3px;
+        }
+        .bank-row strong {
+            font-weight: 700;
+        }
+        
+        .summary-row {
+            display: grid;
+            grid-template-columns: 1fr 100px; /* Label | Amount */
+            padding: 6px 10px;
+            border-bottom: 1px solid #000;
+        }
+        .summary-row:last-of-type {
+            font-weight: 700;
+        }
+        .summary-row span:last-child {
+            text-align: right;
+        }
+        .footer-certified {
+            padding: 10px;
+            font-size: 8.5pt;
+            flex-grow: 1; /* Pushes signature down */
+            display: flex;
+            align-items: flex-end; /* Aligns text to bottom */
+            font-weight: 500;
+        }
+
+        .footer-bottom {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            border: 1px solid #000;
+            border-top: none;
+        }
+        .terms {
+            padding: 10px;
+            border-right: 1px solid #000;
+        }
+        .terms h4 { margin-bottom: 5px; font-size: 10pt; }
+        .terms ul {
+            margin-left: 20px;
+            line-height: 1.6;
+            list-style-type: disc;
+        }
+        .signature-area {
+            padding: 10px;
+            text-align: right;
+            padding-top: 40px;
+            font-weight: 700;
+            position: relative;
+            min-height: 80px; /* Ensure space for signature */
+        }
+        .signature-area span {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .form-card { display: none; }
+            #invoice-preview { 
+                display: block; 
+                box-shadow: none; 
+                max-width: 100%; 
+                padding: 0; /* Remove padding for print */
+                margin: 0; 
+                min-height: 0;
+                border: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-card">
+            <h1>🔧 RK Engineering Works Invoice Generator</h1>
+            
+            <h2 class="section-title">Customer Details</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="customer-ms">M/S (Company Name)</label>
+                    <input type="text" id="customer-ms" placeholder="Enter company name">
+                </div>
+                <div class="form-group">
+                    <label for="customer-gstn">GSTN</label>
+                    <input type="text" id="customer-gstn" placeholder="Enter GSTN number">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="customer-address">Address</label>
+                <textarea id="customer-address" placeholder="Enter complete address"></textarea>
+            </div>
+
+            <h2 class="section-title">Logo Upload</h2>
+            <div class="form-group">
+                <label for="logo-upload">Upload Company Logo (PNG, JPG)</label>
+                <input type="file" id="logo-upload" accept="image/*" onchange="handleLogoUpload(event)">
+                <small style="color: #666; margin-top: 5px; display: block;">Logo is pre-loaded. You can upload a new one to replace it.</small>
+            </div>
+
+            <h2 class="section-title">Invoice Details</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="invoice-no">Invoice No.</label>
+                    <input type="text" id="invoice-no" placeholder="e.g., 030">
+                </div>
+                <div class="form-group">
+                    <label for="invoice-date">Invoice Date</label>
+                    <input type="date" id="invoice-date">
+                </div>
+                <div class="form-group">
+                    <label for="challan-no">Challan No.</label>
+                    <input type="text" id="challan-no" placeholder="Challan Number">
+                </div>
+                 <div class="form-group">
+                    <label for="reverse-charge">Reverse Charge</label>
+                    <input type="text" id="reverse-charge" placeholder="e.g., Yes/No">
+                </div>
+                <div class="form-group">
+                    <label for="po-no">P.O No.</label>
+                    <input type="text" id="po-no" placeholder="Purchase Order Number">
+                </div>
+                <div class="form-group">
+                    <label for="buyer-order-no">Buyer's order No.</label>
+                    <input type="text" id="buyer-order-no" placeholder="Buyer's Order Number">
+                </div>
+                <div class="form-group">
+                    <label for="delivery-date">Delivery Date</label>
+                    <input type="date" id="delivery-date">
+                </div>
+                 <div class="form-group">
+                    <label for="vehicle-no">Vehicle number</label>
+                    <input type="text" id="vehicle-no" placeholder="Vehicle Number">
+                </div>
+                <div class="form-group">
+                    <label for="eway-no">E-Way No.</label>
+                    <input type="text" id="eway-no" placeholder="E-Way Bill Number">
+                </div>
+            </div>
+
+            <h2 class="section-title">Items/Services</h2>
+            <div class="items-header">
+                <span>HSN / Description</span>
+                <span>Quantity</span>
+                <span>Rate</span>
+                <span>Total</span>
+                <span></span>
+            </div>
+            <div id="items-container">
+                <div class="item-row">
+                    <input type="text" class="item-desc" placeholder="Item description (HSN)">
+                    <input type="number" class="item-qty" value="1" min="0" step="0.01">
+                    <input type="number" class="item-rate" placeholder="Rate" step="0.01">
+                    <input type="text" class="item-total" readonly>
+                    <button class="btn btn-danger" onclick="removeItem(this)">✕</button>
+                </div>
+            </div>
+            <button class="btn btn-add" onclick="addItem()">+ Add Item</button>
+
+            <h2 class="section-title">Tax Details</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="igst">IGST (%)</label>
+                    <input type="number" id="igst" value="0" min="0" max="100" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="sgst">SGST (%)</label>
+                    <input type="number" id="sgst" value="9" min="0" max="100" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="cgst">CGST (%)</label>
+                    <input type="number" id="cgst" value="9" min="0" max="100" step="0.01">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="generatePreview()">📄 Generate Preview</button>
+                <button class="btn btn-success" id="download-btn" onclick="downloadPDF()" style="display:none;">⬇️ Download PDF</button>
+            </div>
+        </div>
+
+        <!-- 
+        ==================================================================
+        INVOICE PREVIEW - REBUILT TO MATCH TARGET IMAGE
+        ==================================================================
+        -->
+        <div id="invoice-preview">
+            <!-- Base64 Encoded Logo for Watermark and Header -->
+            <img src="" class="watermark" alt="Watermark" id="watermark-img">
+            
+            <div class="invoice-content">
+                <!-- New Header -->
+                <div class="invoice-header">
+                    <div class="header-top">
+                        <h2>R.K ENGINEERING WORKS</h2>
+                        <div class="tagline">MANUFACTURERS IN SPECIAL PURPOSE MACHINERIES</div>
+                    </div>
+                    <div class="header-bottom">
+                        <div class="contact-details">
+                            1768/B Jed Galli, Shahpur,<br>
+                            Belagavi, Karnataka-IN<br>
+                            Tel:: +91 98444 62298<br>
+                            Alternate Tel:: +91 78923 86317<br>
+                            Email:: rkengineering111@gmail.com
+                        </div>
+                        <div class="logo-placeholder">
+                            <!-- Base64 Encoded Logo -->
+                            <img src="" alt="RK Engineering Works Logo" id="logo-img">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meta Bar -->
+                <div class="invoice-meta">
+                    <div class="meta-box gstn"><strong>GSTN:-</strong> 29ADGPR4009K1Z8</div>
+                    <div class="meta-box title">TAX INVOICE</div>
+                    <div class="meta-box recipient">ORIGINAL FOR RECIPIENT</div>
+                </div>
+
+                <!-- New Details Grid -->
+                <div class="details-container">
+                    <div class="detail-section-left">
+                        <h3>Customers Details</h3>
+                        <div class="detail-row">
+                            <strong>M/S:</strong>
+                            <span id="prev-customer-ms"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Address:</strong>
+                            <span id="prev-customer-address" style="white-space: pre-line;"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>GSTN:</strong>
+                            <span id="prev-customer-gstn"></span>
+                        </div>
+                    </div>
+                    <!-- Right side is nested grid -->
+                    <div class="detail-section-right">
+                        <div class="detail-row-right">
+                            <strong>Invoice No.:</strong>
+                            <span id="prev-invoice-no"></span>
+                        </div>
+                        <div class="detail-row-right">
+                            <strong>Invoice Date:</strong>
+                            <span id="prev-invoice-date"></span>
+                        </div>
+                         <div class="detail-row-right">
+                            <strong>Challan No.:</strong>
+                            <span id="prev-challan-no"></span>
+                        </div>
+                        <div class="detail-row-right">
+                            <strong>Reverse Charge:</strong>
+                            <span id="prev-reverse-charge"></span>
+                        </div>
+                         <div class="detail-row-right">
+                            <strong>P.O No.:</strong>
+                            <span id="prev-po-no"></span>
+                        </div>
+                         <div class="detail-row-right">
+                            <strong>&nbsp;</strong> <!-- Spacer -->
+                            <span></span>
+                        </div>
+                        <div class="detail-row-right span-2">
+                            <strong>Buyer's order No.:</strong>
+                            <span id="prev-buyer-order-no"></span>
+                        </div>
+                        <div class="detail-row-right">
+                            <strong>Delivery Date:</strong>
+                            <span id="prev-delivery-date"></span>
+                        </div>
+                        <div class="detail-row-right">
+                            <strong>Vehicle number:</strong>
+                            <span id="prev-vehicle-no"></span>
+                        </div>
+                        <div class="detail-row-right span-2">
+                            <strong>E-Way No.:</strong>
+                            <span id="prev-eway-no"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Items Table -->
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:50%">HSN</th>
+                                <th>Quantity</th>
+                                <th>Rate</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prev-items-tbody">
+                            <!-- Items will be injected here by JS -->
+                            <!-- This empty row ensures a minimum height -->
+                            <tr style="height: 350px;">
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Footer - Total Exclusive -->
+                <div class="footer-total-exclusive">
+                    <span>Total (excl. GST)</span>
+                    <span id="prev-taxable-top"></span> <!-- Will mirror prev-taxable -->
+                </div>
+
+                <!-- Footer - Main -->
+                <div class="footer-main">
+                    <div class="footer-left">
+                        <div class="footer-row">
+                            <strong>Total in words:</strong> 
+                            <span id="prev-words"></span>
+                        </div>
+                        <div class="bank-details">
+                            <h4>Bank Details</h4>
+                            <div class="bank-row">
+                                <strong>Bank name</strong>
+                                <span>: Canara Bank</span>
+                            </div>
+                             <div class="bank-row">
+                                <strong>Branch name</strong>
+                                <span>: Canara Bank Shahpur Branch</span>
+                            </div>
+                             <div class="bank-row">
+                                <strong>Bank account number</strong>
+                                <span>: 0557201000808</span>
+                            </div>
+                             <div class="bank-row">
+                                <strong>Bank branch IFSC code</strong>
+                                <span>: CNRB000055</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer-right">
+                        <div class="summary-row">
+                            <span>Taxable amount</span>
+                            <span id="prev-taxable"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Add: IGST</span>
+                            <span id="prev-igst-amt"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span>SGST</span>
+                            <span id="prev-sgst-amt"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span>CGST</span>
+                            <span id="prev-cgst-amt"></span>
+                        </div>
+                         <div class="summary-row">
+                            <span>Total Tax</span>
+                            <span id="prev-total-tax"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Total Amount after tax</span>
+                            <span id="prev-grand-total"></span>
+                        </div>
+                        <div class="footer-certified">
+                            <span>Certified that the particulars given above are true and
+                            correct. <strong>For R.K Engineering Works</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer - Bottom -->
+                <div class="footer-bottom">
+                    <div class="terms">
+                        <h4>Terms and condition</h4>
+                        <ul>
+                            <li>Subjected to Karnataka Jurisdiction</li>
+                            <li>Our responsibility ceases as soon as the item leaves our premises</li>
+                            <li>The item once sold will not be taken back</li>
+                            <li>Delivery ex-premises</li>
+                        </ul>
+                    </div>
+                    <div class="signature-area">
+                        <span>Authorized Signature</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pre-load logo (Base64 string of the 'RK LOGO.jpg')
+        // This logo is used by default for the header and watermark
+        let logoDataURL = 'data:image/jpeg;base64,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';
+        
+        // Set default logo and watermark on page load
+        document.getElementById('logo-img').src = logoDataURL;
+        document.getElementById('watermark-img').src = logoDataURL;
+
+        document.getElementById('invoice-date').valueAsDate = new Date();
+        document.getElementById('delivery-date').valueAsDate = new Date();
+
+        // Logo upload handler
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoDataURL = e.target.result;
+                    // Update both logo and watermark
+                    document.getElementById('logo-img').src = logoDataURL;
+                    document.getElementById('watermark-img').src = logoDataURL;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function addItem() {
+            const container = document.getElementById('items-container');
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <input type="text" class="item-desc" placeholder="Item description (HSN)">
+                <input type="number" class="item-qty" value="1" min="0" step="0.01">
+                <input type="number" class="item-rate" placeholder="Rate" step="0.01">
+                <input type="text" class="item-total" readonly>
+                <button class="btn btn-danger" onclick="removeItem(this)">✕</button>
+            `;
+            container.appendChild(row);
+            attachListeners(row);
+        }
+
+        function removeItem(btn) {
+            // Only remove if it's not the last item row
+            if(document.querySelectorAll('.item-row').length > 1) {
+                btn.parentElement.remove();
+                generatePreview(); // Update preview after removing
+            }
+        }
+        
+        function calculateAll() {
+             let subtotal = 0;
+             document.querySelectorAll('.item-row').forEach(row => {
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                const total = qty * rate;
+                row.querySelector('.item-total').value = total.toFixed(2);
+                subtotal += total;
+             });
+             return subtotal;
+        }
+
+        function attachListeners(row) {
+            // Attach listeners to all inputs that affect totals
+            row.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', () => {
+                    // Recalculate this row
+                    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                    const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                    row.querySelector('.item-total').value = (qty * rate).toFixed(2);
+                    
+                    // Note: We call generatePreview() from the button, 
+                    // not on every keystroke, to avoid jumpiness.
+                    // But if you want live updates, uncomment the next line:
+                    // generatePreview(); 
+                });
+            });
+        }
+
+
+        document.querySelectorAll('.item-row').forEach(attachListeners);
+
+        function numberToWords(num) {
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+            
+            function convert(n) {
+                let str = '';
+                if (n === 0) return '';
+                if (n < 10) {
+                    str = ones[n];
+                } else if (n < 20) {
+                    str = teens[n - 10];
+                } else if (n < 100) {
+                    str = tens[Math.floor(n / 10)] + ' ' + ones[n % 10];
+                } else if (n < 1000) {
+                    str = ones[Math.floor(n / 100)] + ' Hundred ' + convert(n % 100);
+                } else if (n < 100000) {
+                    str = convert(Math.floor(n / 1000)) + ' Thousand ' + convert(n % 1000);
+                } else if (n < 10000000) {
+                    str = convert(Math.floor(n / 100000)) + ' Lakh ' + convert(n % 100000);
+                } else {
+                    str = convert(Math.floor(n / 10000000)) + ' Crore ' + convert(n % 10000000);
+                }
+                return str.trim();
+            }
+            
+            const rupees = Math.floor(num);
+            const paise = Math.round((num - rupees) * 100);
+            let result = 'Rupees ' + convert(rupees).trim() + ' Only';
+            return result.replace(/\s+/g, ' ').trim(); // Clean up extra spaces
+        }
+
+        function generatePreview() {
+            // Customer Details
+            document.getElementById('prev-customer-ms').textContent = document.getElementById('customer-ms').value;
+            document.getElementById('prev-customer-address').textContent = document.getElementById('customer-address').value;
+            document.getElementById('prev-customer-gstn').textContent = document.getElementById('customer-gstn').value;
+            
+            // Invoice Details
+            document.getElementById('prev-invoice-no').textContent = document.getElementById('invoice-no').value;
+            // Format date to DD-MMM-YYYY
+            const invDate = new Date(document.getElementById('invoice-date').value);
+            document.getElementById('prev-invoice-date').textContent = isNaN(invDate) ? '' : `${invDate.getDate()}-${invDate.toLocaleString('default', { month: 'short' })}-${invDate.getFullYear()}`;
+            
+            document.getElementById('prev-challan-no').textContent = document.getElementById('challan-no').value;
+            document.getElementById('prev-reverse-charge').textContent = document.getElementById('reverse-charge').value;
+            document.getElementById('prev-po-no').textContent = document.getElementById('po-no').value;
+            document.getElementById('prev-buyer-order-no').textContent = document.getElementById('buyer-order-no').value;
+
+            const delDate = new Date(document.getElementById('delivery-date').value);
+            document.getElementById('prev-delivery-date').textContent = isNaN(delDate) ? '' : `${delDate.getDate()}-${delDate.toLocaleString('default', { month: 'short' })}-${delDate.getFullYear()}`;
+
+            document.getElementById('prev-vehicle-no').textContent = document.getElementById('vehicle-no').value;
+            document.getElementById('prev-eway-no').textContent = document.getElementById('eway-no').value;
+
+            // Items
+            const tbody = document.getElementById('prev-items-tbody');
+            tbody.innerHTML = ''; // Clear existing items
+            let subtotal = 0;
+            let hasItems = false;
+
+            document.querySelectorAll('.item-row').forEach(row => {
+                const desc = row.querySelector('.item-desc').value;
+                const qty = row.querySelector('.item-qty').value; // Keep as string for display
+                const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                
+                // Recalculate total
+                const total = (parseFloat(qty) || 0) * rate;
+                row.querySelector('.item-total').value = total.toFixed(2);
+                
+                if (desc || qty || rate > 0) { // Add row if any info is present
+                    hasItems = true;
+                    const tr = tbody.insertRow();
+                    tr.innerHTML = `
+                        <td style="text-align:left; white-space: pre-line; vertical-align: top;">${desc}</td>
+                        <td>${qty}</td>
+                        <td>${rate.toFixed(2)}</td>
+                        <td>${total.toFixed(2)}</td>
+                    `;
+                    subtotal += total;
+                }
+            });
+
+            // If no items were added, add the tall empty row back
+            if (!hasItems) {
+                tbody.innerHTML = `<tr style="height: 350px;"><td></td><td></td><td></td><td></td></tr>`;
+            } else {
+                 // Add a final row to fill remaining space
+                 const tr = tbody.insertRow();
+                 tr.innerHTML = `<td></td><td></td><td></td><td></td>`;
+                 tr.style.height = '100%';
+            }
+
+
+            // Calculations
+            const igst = parseFloat(document.getElementById('igst').value) || 0;
+            const sgst = parseFloat(document.getElementById('sgst').value) || 0;
+            const cgst = parseFloat(document.getElementById('cgst').value) || 0;
+
+            const igstAmt = (subtotal * igst) / 100;
+            const sgstAmt = (subtotal * sgst) / 100;
+            const cgstAmt = (subtotal * cgst) / 100;
+            const totalTax = igstAmt + sgstAmt + cgstAmt;
+            const grandTotal = subtotal + totalTax;
+
+            // Populate Footer
+            document.getElementById('prev-taxable-top').textContent = subtotal.toFixed(2);
+            document.getElementById('prev-taxable').textContent = subtotal.toFixed(2);
+            document.getElementById('prev-igst-amt').textContent = igstAmt.toFixed(2);
+            document.getElementById('prev-sgst-amt').textContent = sgstAmt.toFixed(2);
+            document.getElementById('prev-cgst-amt').textContent = cgstAmt.toFixed(2);
+            document.getElementById('prev-total-tax').textContent = totalTax.toFixed(2);
+            document.getElementById('prev-grand-total').textContent = grandTotal.toFixed(2);
+            document.getElementById('prev-words').textContent = numberToWords(grandTotal);
+
+            // Show Preview
+            document.getElementById('invoice-preview').style.display = 'flex'; // Use flex for layout
+            document.getElementById('download-btn').style.display = 'inline-block';
+            
+            // Scroll to preview
+            document.getElementById('invoice-preview').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function downloadPDF() {
+            // Run preview gen one last time to ensure data is fresh
+            generatePreview();
+
+            const element = document.getElementById('invoice-preview');
+            const invoiceNo = document.getElementById('invoice-no').value || 'invoice';
+            const opt = {
+                margin: 0, // No margin
+                filename: `RK_Invoice_${invoiceNo}.pdf`,
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { scale: 3, useCORS: true, letterRendering: true }, // Higher scale, useCORS
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Temporarily remove padding for PDF generation
+            element.style.padding = '0'; 
+            element.style.boxShadow = 'none';
+            element.style.margin = '0';
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Restore padding and shadow after PDF generation
+                element.style.padding = '15mm'; 
+                element.style.boxShadow = '0 20px 60px rgba(0,0,0,0.3)';
+                element.style.margin = '30px auto';
+            }).catch(err => {
+                console.error("PDF generation failed:", err);
+                // Restore styles even if it fails
+                element.style.padding = '15mm'; 
+                element.style.boxShadow = '0 20px 60px rgba(0,0,0,0.3)';
+                element.style.margin = '30px auto';
+            });
+        }
+    </script>
+</body>
+</html>
